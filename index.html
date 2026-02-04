@@ -12,6 +12,30 @@
         body {
             background-color: #f8fafc;
             font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* Meril-V Branding Background */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('background.png') no-repeat center center fixed;
+            background-size: cover;
+            /* White Overlay for readability */
+            box-shadow: inset 0 0 0 1000px rgba(255, 255, 255, 0.90);
+            z-index: -1;
+        }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 15px -1px rgba(0, 0, 0, 0.05);
         }
 
         /* V13 Table Resize Handles */
@@ -37,6 +61,89 @@
             background-color: #3b82f6;
             /* Blue highlight */
             width: 7px;
+        }
+
+        /* SUPER FILTER UI */
+        .super-filter-panel {
+            position: absolute;
+            background: white;
+            width: 280px;
+            max-height: 400px;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e2e8f0;
+            z-index: 100;
+            font-family: ui-sans-serif, system-ui;
+        }
+
+        .filter-header {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .filter-body {
+            padding: 8px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .filter-footer {
+            padding: 10px;
+            border-top: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            background: #f8fafc;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .filter-row {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            font-size: 13px;
+            color: #334155;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .filter-row:hover {
+            background: #f1f5f9;
+        }
+
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            background: #eff6ff;
+            color: #1d4ed8;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid #dbeafe;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .filter-chip button {
+            margin-left: 6px;
+            color: #60a5fa;
+            cursor: pointer;
+        }
+
+        .filter-chip button:hover {
+            color: #1e40af;
+        }
+
+        .active-filter-icon {
+            transition: all 0.2s;
         }
 
         .spinner {
@@ -114,12 +221,14 @@
 
     <div class="w-full max-w-[99%] mx-auto">
         <header
-            class="bg-white p-4 rounded shadow-sm border-b border-gray-300 flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900"><i
-                        class="fas fa-barcode text-purple-700 mr-2"></i>Inventory Validator <span
-                        class="text-sm font-normal text-gray-500">(v13 - Smart Logic)</span></h1>
-                <p class="text-xs text-gray-500 mt-1">Update: Column Hiding & Resizing Fixed</p>
+            class="glass-header p-4 rounded-xl flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border border-white/50">
+            <div class="flex items-center gap-5">
+                <img src="logo.png" alt="Meril-V" class="h-12 w-auto object-contain drop-shadow-sm">
+                <div class="border-l-2 border-slate-200 pl-4">
+                    <h1 class="text-xl font-bold text-slate-800 tracking-tight leading-none">Inventory Validator</h1>
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mt-1">Warehouse Management
+                        System</p>
+                </div>
             </div>
             <div class="flex gap-2">
                 <button onclick="toggleSettingsPage()"
@@ -130,6 +239,10 @@
                     onclick="document.getElementById('layoutModal').classList.remove('hidden'); loadLayoutToEditor(activeLayoutId);"
                     class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold shadow transition">
                     <i class="fas fa-table mr-1"></i> Layout Manager
+                </button>
+                <button onclick="runDiagnostics()"
+                    class="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-4 py-2 rounded text-sm font-bold border border-yellow-200 transition">
+                    <i class="fas fa-vial mr-1"></i> Test
                 </button>
                 <button onclick="showAbout()"
                     class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded text-sm font-bold border border-blue-200 transition">
@@ -297,6 +410,11 @@
                             <span class="text-xs font-bold text-blue-800">Read "Qty" column from Scan File (Deducts
                                 actual quantity)</span>
                         </label>
+                        <label class="flex items-center mt-2">
+                            <input type="checkbox" id="autoSloc" checked class="mr-2">
+                            <span class="text-xs font-bold text-purple-700">Enable Auto S.Loc Allocation (Use
+                                DMG1/RT01)</span>
+                        </label>
                     </div>
                 </div>
 
@@ -436,25 +554,44 @@
     <div id="statusLog"
         class="hidden mb-4 p-3 bg-gray-900 text-green-400 font-mono text-xs rounded max-h-32 overflow-y-auto"></div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white p-5 rounded shadow border-l-4 border-gray-500">
-            <label class="block font-bold text-gray-700 mb-1">1. Scan Data (GS1)</label>
-            <div class="text-[10px] text-gray-400 mb-2">Counts from Row A1 if no header detected</div>
-            <input type="file" id="fileScan"
-                class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer" />
-        </div>
-        <div class="bg-white p-5 rounded shadow border-l-4 border-blue-900">
-            <label class="block font-bold text-gray-700 mb-1">2. SAP System Dump</label>
-            <div class="text-[10px] text-gray-400 mb-2">Upload YSRL file</div>
-            <input type="file" id="fileSystem"
-                class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-900 hover:file:bg-blue-100 cursor-pointer" />
-        </div>
+    <!-- 1. SAP System File (Required Common Step) -->
+    <div class="bg-white p-5 rounded shadow border-l-4 border-blue-900 mb-6">
+        <label class="block font-bold text-gray-800 mb-1 text-lg">1. Upload SAP System Dump (Required)</label>
+        <div class="text-xs text-gray-500 mb-3">Upload your SAP YSRL export file (.xlsx or .csv) to load inventory
+            reference.</div>
+        <input type="file" id="fileSystem" onchange="loadSystemInventory(this.files[0])"
+            class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-900 hover:file:bg-blue-100 cursor-pointer border border-gray-300 rounded p-1" />
     </div>
 
-    <button id="btnRun" onclick="runValidation()"
-        class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-3 rounded shadow-lg transition active:scale-[0.99] mb-8">
-        START VALIDATION
-    </button>
+    <!-- 2. Mode Selection Buttons -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <button onclick="enableBulkMode()"
+            class="bg-gray-900 hover:bg-black text-white py-5 rounded font-bold shadow-lg flex items-center justify-center transition uppercase tracking-wider text-sm md:text-base border-b-4 border-gray-700 active:border-b-0 active:translate-y-1">
+            START BULK VALIDATION
+        </button>
+        <button onclick="openLiveScanMode()"
+            class="bg-red-700 hover:bg-red-800 text-white py-5 rounded font-bold shadow-lg flex items-center justify-center transition uppercase tracking-wider text-sm md:text-base border-b-4 border-red-900 active:border-b-0 active:translate-y-1">
+            <i class="fas fa-barcode mr-2"></i> START LIVE SCANNER
+        </button>
+    </div>
+
+    <!-- 3. Bulk Inputs (Hidden Area) -->
+    <div id="bulkUploadSection" class="hidden animate-fade mb-8">
+        <div class="bg-gray-100 p-5 rounded border border-gray-300 mb-4 relative">
+            <div
+                class="absolute -top-3 left-4 bg-gray-900 text-white text-[10px] px-2 py-1 rounded font-bold uppercase">
+                Bulk Mode Active</div>
+            <label class="block font-bold text-gray-700 mb-1">2. Upload Scan Data File</label>
+            <div class="text-[10px] text-gray-400 mb-2">Upload the Excel/CSV file from your handheld scanner</div>
+            <input type="file" id="fileScan"
+                class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-200 file:text-gray-800 hover:file:bg-gray-300 cursor-pointer border border-gray-300 rounded p-1 bg-white" />
+        </div>
+
+        <button id="btnRun" onclick="runValidation()"
+            class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-3 rounded shadow-lg transition active:scale-[0.99]">
+            <i class="fas fa-play-circle mr-2"></i> RUN VALIDATION
+        </button>
+    </div>
 
     <div id="preValidationModal"
         class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -593,6 +730,22 @@
                     <b>Privacy Note:</b> This tool runs 100% in your browser. No data is uploaded to any server. Your
                     files remain on your device.
                 </div>
+
+                <h4 class="font-bold text-lg text-gray-800 mb-2 mt-4"><i class="fas fa-keyboard mr-2"></i>Keyboard
+                    Shortcuts</h4>
+                <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                    <div class="bg-gray-50 p-2 rounded border"><kbd class="bg-white border rounded px-1">Alt</kbd> +
+                        <kbd class="bg-white border rounded px-1">F</kbd> Focus Search
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded border"><kbd class="bg-white border rounded px-1">Ctrl</kbd> +
+                        <kbd class="bg-white border rounded px-1">Shift</kbd> + <kbd
+                            class="bg-white border rounded px-1">L</kbd> Clear Filters
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded border"><kbd class="bg-white border rounded px-1">Esc</kbd> Close
+                        Panels</div>
+                    <div class="bg-gray-50 p-2 rounded border"><kbd class="bg-white border rounded px-1">P</kbd> Pause
+                        Live Scan</div>
+                </div>
             </div>
         </div>
     </div>
@@ -713,6 +866,11 @@
             </div>
         </div>
 
+        <!-- ACTIVE FILTERS BAR -->
+        <div id="activeFiltersBar"
+            class="hidden flex flex-wrap items-center bg-blue-50 border border-blue-200 p-2 rounded shadow-sm animate-fade">
+        </div>
+
         <div
             class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-3 rounded shadow border border-gray-200">
             <div class="relative w-full md:w-1/3">
@@ -722,7 +880,7 @@
             </div>
             <div class="flex gap-2">
                 <button onclick="openColVis()"
-                    class="bg-blue-100 text-blue-800 px-4 py-2 rounded shadow hover:bg-blue-200 font-bold text-sm flex items-center">
+                    class="bg-blue-50 text-blue-700 border border-blue-200 px-4 py-2 rounded shadow hover:bg-blue-100 font-bold text-sm flex items-center">
                     <i class="fas fa-eye mr-2"></i> Adjust Columns
                 </button>
                 <button onclick="exportResult()"
@@ -836,9 +994,11 @@
         // --- GLOBAL STATE ---
         let globalData = [];
         let displayedData = [];
+        let inventoryMap = new Map(); // Added explicit global
         let sortState = { key: '', order: 'asc' };
         let validationErrors = [];
         let duplicateSerials = [];
+        let totalSysItemsInitial = 0; // Fixed: Promoted to global scope
         let MATERIAL_MASTER = {}; // { 'code': 'Description' }
         let CUSTOMER_MASTER = {}; // { 'code': 'Customer Name' }
         const CURRENT_VERSION = "2.1";
@@ -1021,6 +1181,7 @@
 
                 // SAVE TO LOCAL STORAGE
                 saveSettings();
+                saveToDB('materialMaster', MATERIAL_MASTER);
 
                 alert(`Successfully loaded ${count} materials.`);
 
@@ -1083,6 +1244,7 @@
 
                 // SAVE TO LOCAL STORAGE
                 saveSettings();
+                saveToDB('customerMaster', CUSTOMER_MASTER);
 
                 alert(`Successfully loaded ${count} customers.`);
 
@@ -1091,7 +1253,38 @@
             }
         }
 
-        // --- PERSISTENCE ---
+        // --- PERSISTENCE (IndexedDB + LocalStorage) ---
+        let db;
+        const initDB = () => {
+            const req = indexedDB.open("ValToolDB", 1);
+            req.onupgradeneeded = e => e.target.result.createObjectStore("store");
+            req.onsuccess = e => {
+                db = e.target.result;
+                loadFromDB("materialMaster", v => {
+                    if (v) { MATERIAL_MASTER = v; updateMasterList(v, 'masterList', 'masterCount'); }
+                });
+                loadFromDB("customerMaster", v => {
+                    if (v) { CUSTOMER_MASTER = v; updateMasterList(v, 'custMasterList', 'custMasterCount'); }
+                });
+            };
+        };
+        const saveToDB = (k, v) => {
+            if (db) db.transaction(["store"], "readwrite").objectStore("store").put(v, k);
+        };
+        const loadFromDB = (k, cb) => {
+            if (db) db.transaction(["store"]).objectStore("store").get(k).onsuccess = e => cb(e.target.result);
+        };
+        const updateMasterList = (data, listId, countId) => {
+            const list = document.getElementById(listId);
+            list.innerHTML = "";
+            let c = 0;
+            for (let k in data) {
+                if (c++ < 10) list.innerHTML += `<li class="truncate"><b>${k}</b>: ${data[k]}</li>`;
+            }
+            if (c > 10) list.innerHTML += `<li class="italic text-gray-400">...and ${c - 10} more</li>`;
+            document.getElementById(countId).innerText = c + " (cached)";
+        };
+
         function saveSettings() {
             const settings = {
                 custName: document.getElementById('custName').value,
@@ -1114,9 +1307,7 @@
                 // --- [UPDATED LOGIC] ---
                 smartZero: document.getElementById('smartZero').checked,
                 useScanQty: document.getElementById('useScanQty').checked,
-                // ---
-                materialMaster: MATERIAL_MASTER,
-                customerMaster: CUSTOMER_MASTER
+                autoSloc: document.getElementById('autoSloc').checked
             };
             try {
                 localStorage.setItem('sapVal_settings_v12', JSON.stringify(settings));
@@ -1159,6 +1350,7 @@
                 // --- [UPDATED LOGIC] ---
                 if (s.smartZero !== undefined) document.getElementById('smartZero').checked = s.smartZero;
                 if (s.useScanQty !== undefined) document.getElementById('useScanQty').checked = s.useScanQty;
+                if (s.autoSloc !== undefined) document.getElementById('autoSloc').checked = s.autoSloc;
                 // ---
 
                 if (s.exportLayout) {
@@ -1378,18 +1570,34 @@
             // Check 3: Read SAP file and validate columns
             try {
                 const sapData = await readXlsx(sapFile);
-                const headerRow = sapData.findIndex(row => row.join("").toLowerCase().includes("material"));
+
+                // Allow flexible header names for Material (Enhanced)
+                const validMatTerms = ['material', 'mat', 'matnr', 'article', 'product', 'item', 'sku', 'part', 'code', 'model', 'identifier'];
+
+                let headerRow = sapData.findIndex(row => {
+                    const rowStr = row.join(" ").toLowerCase();
+                    return validMatTerms.some(term => rowStr.includes(term));
+                });
+
+                // Fallback: search for Batch+Serial if Material not found
+                if (headerRow === -1) {
+                    headerRow = sapData.findIndex(row => {
+                        const s = row.join(" ").toLowerCase();
+                        return (s.includes('batch') || s.includes('lot')) && (s.includes('serial') || s.includes('sno'));
+                    });
+                }
 
                 if (headerRow === -1) {
                     checks.push({
                         name: 'SAP File Columns',
                         passed: false,
-                        message: 'Missing required "Material" column header'
+                        message: 'Missing required "Material" column header (Checked for: Material, Matnr, Part, Batch+Serial, etc.)'
                     });
                     allPassed = false;
                 } else {
                     const headers = sapData[headerRow].map(h => String(h).toLowerCase());
-                    const hasMaterial = headers.some(h => h.includes("material"));
+                    let hasMaterial = headers.some(h => validMatTerms.some(term => h.includes(term)));
+                    if (headerRow > -1 && !hasMaterial) hasMaterial = true;
                     const hasBatch = headers.some(h => h.includes("batch") || h.includes("lot"));
                     const hasSerial = headers.some(h => h.includes("serial") || h.includes("sno"));
 
@@ -1782,6 +1990,8 @@
 
         // --- EXCEL ---
         const readXlsx = (file) => {
+            if (file && file.isMock) return Promise.resolve(file.data);
+
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -1849,9 +2059,14 @@
 
 
         // --- SORT ---
-        function sortBy(key) {
-            if (sortState.key === key) sortState.order = sortState.order === 'asc' ? 'desc' : 'asc';
-            else { sortState.key = key; sortState.order = 'asc'; }
+        function sortBy(key, forceOrder = null) {
+            if (forceOrder) {
+                sortState.key = key;
+                sortState.order = forceOrder;
+            } else {
+                if (sortState.key === key) sortState.order = sortState.order === 'asc' ? 'desc' : 'asc';
+                else { sortState.key = key; sortState.order = 'asc'; }
+            }
 
             document.querySelectorAll('.fa-sort').forEach(i => i.className = 'fas fa-sort text-gray-400 ml-1');
             const icon = document.getElementById(`icon-${key}`);
@@ -1859,13 +2074,246 @@
 
             displayedData.sort((a, b) => {
                 let valA = a[key], valB = b[key];
+                // Stock Status Sort Logic
+                if (key === 'statusPriority') return (a.stockStatus?.priority || 99) - (b.stockStatus?.priority || 99) * (sortState.order === 'asc' ? 1 : -1);
+
                 let numA = parseFloat(valA), numB = parseFloat(valB);
-                if (!isNaN(numA) && !isNaN(numB) && key !== 'mat') { valA = numA; valB = numB; }
-                else { valA = String(valA).toLowerCase(); valB = String(valB).toLowerCase(); }
-                return (valA < valB ? -1 : 1) * (sortState.order === 'asc' ? 1 : -1);
+                if (!isNaN(numA) && !isNaN(numB) && key !== 'mat' && key !== 'custCode') { valA = numA; valB = numB; }
+                else { valA = String(valA || "").toLowerCase(); valB = String(valB || "").toLowerCase(); }
+                return (valA < valB ? -1 : (valA > valB ? 1 : 0)) * (sortState.order === 'asc' ? 1 : -1);
             });
             renderTable(displayedData);
         }
+
+        // --- DATA LOADING ---
+        async function loadSystemInventory(file) {
+            if (!file) return;
+
+            try {
+                const rawSys = await readXlsx(file);
+
+                // Map System with progress tracking
+                // Allow flexible header names for Material
+                const validMatTerms = ['material', 'mat', 'matnr', 'article', 'product', 'item', 'sku', 'part', 'code', 'model', 'identifier'];
+
+                // Strict Header Detection: Material AND (Batch OR Qty OR Desc OR Billing)
+                // This prevents picking up Title rows like "Material Report"
+                let sysHeadRow = rawSys.findIndex(row => {
+                    const rowStr = row.join(" ").toLowerCase();
+                    const hasMat = validMatTerms.some(term => rowStr.includes(term));
+                    if (!hasMat) return false;
+
+                    const hasOther = rowStr.includes("batch") || rowStr.includes("qty") || rowStr.includes("quantity") ||
+                        rowStr.includes("desc") || rowStr.includes("plant") || rowStr.includes("billing");
+                    return hasOther;
+                });
+
+                // Fallback: Loose Detection (Old Logic) - Just Material
+                // This ensures we support simple files that might be missing other columns
+                if (sysHeadRow === -1) {
+                    sysHeadRow = rawSys.findIndex(row => {
+                        const rowStr = row.join(" ").toLowerCase();
+                        return validMatTerms.some(term => rowStr.includes(term));
+                    });
+                    if (sysHeadRow > -1) console.warn("Loose Header Detection used (only Material found).");
+                }
+
+                // Fallback: If no Material found, look for Batch + Serial together
+                if (sysHeadRow === -1) {
+                    sysHeadRow = rawSys.findIndex(row => {
+                        const s = row.join(" ").toLowerCase();
+                        return (s.includes('batch') || s.includes('lot')) && (s.includes('serial') || s.includes('sno') || s.includes('ser'));
+                    });
+                    if (sysHeadRow > -1) console.warn("Using Fallback Header Row detection (Batch+Serial found)");
+                }
+
+                if (sysHeadRow === -1) {
+                    console.error("System file missing 'Material' header.");
+                    return;
+                }
+                const sysHeaders = rawSys[sysHeadRow].map(h => String(h).toLowerCase());
+
+                let idxMat = sysHeaders.findIndex(h => validMatTerms.some(term => h.includes(term)));
+
+                // Fallback: If no explicit Material col, assume Column A (Index 0)
+                if (idxMat === -1) {
+                    idxMat = 0;
+                    console.warn("No explicit Material column matched. Defaulting to Column A.");
+                }
+                const idxBatch = sysHeaders.findIndex(h => h.includes("batch") || h.includes("lot"));
+                const idxSer = sysHeaders.findIndex(h => h.includes("serial") || h.includes("sno"));
+                const idxQty = sysHeaders.findIndex(h => h.includes("qty") || h.includes("count") || h.includes("unrestricted"));
+                const idxPlant = sysHeaders.findIndex(h => h.includes("plant") || h.includes("werks") || h.includes("site"));
+                const idxSloc = sysHeaders.findIndex(h => h.includes("sloc") || h.includes("loc"));
+                const idxExpiry = sysHeaders.findIndex(h => h.includes("sled") || h.includes("bbd") || h.includes("expiry"));
+
+                const idxBillDoc = sysHeaders.findIndex(h => h.includes("billing document") || h.includes("billing doc") || h.includes("bill. doc") || h.includes("bill doc"));
+                const idxBillDate = sysHeaders.findIndex(h => h.includes("billing date") || h.includes("billing dt") || h.includes("bill. date") || h.includes("bill date"));
+
+                console.log("SAP Headers Detected:", sysHeaders);
+                console.log("Indices:", { idxMat, idxBatch, idxBillDoc, idxBillDate });
+                const idxAge = sysHeaders.findIndex(h => h.includes("ageing") || h.includes("aging") || h.includes("inv. age"));
+
+                // V13: Helper indices
+                const idxMatchDesc = sysHeaders.findIndex(h => h.includes("desc") || h.includes("text") || h.includes("material description"));
+                const idxDesc = idxMatchDesc > -1 ? idxMatchDesc : sysHeaders.findIndex(h => h.includes("name")); // Fallback
+
+                // Enhanced Customer Detection
+                const idxCustName = sysHeaders.findIndex(h => h.includes("name") || (h.includes("cust") && h.includes("desc")));
+                const idxCustCode = sysHeaders.findIndex(h =>
+                    (h.includes("cust") && (h.includes("code") || h.includes("id") || h.includes("no") || h.includes("num"))) ||
+                    h.includes("sold-to") || h.includes("ship-to") || h.includes("payer") || h.includes("party") || h.includes("kunnr") ||
+                    (h.includes("customer") && !h.includes("name"))
+                );
+
+                // Build Map-based inventory for O(1) lookups
+                inventoryMap = new Map(); // Global
+                totalSysItemsInitial = 0; // Use global variable
+
+                const smartZero = document.getElementById('smartZero')?.checked || false;
+
+                for (let i = sysHeadRow + 1; i < rawSys.length; i++) {
+                    const row = rawSys[i];
+                    if (!row[idxMat]) continue;
+
+                    const item = {
+                        mat: clean(row[idxMat]),
+                        batch: clean(row[idxBatch]),
+                        ser: idxSer > -1 ? clean(row[idxSer]) : "",
+                        qty: idxQty > -1 ? (parseFloat(row[idxQty]) || 1) : 1,
+                        plant: idxPlant > -1 ? clean(row[idxPlant]) : "-",
+                        sloc: idxSloc > -1 ? clean(row[idxSloc]) : "-",
+                        expiry: idxExpiry > -1 ? clean(row[idxExpiry]) : "-",
+                        age: idxAge > -1 ? clean(row[idxAge]) : "-",
+                        desc: idxDesc > -1 ? clean(row[idxDesc]) : "",
+                        custName: idxCustName > -1 ? clean(row[idxCustName]) : "",
+                        custCode: idxCustCode > -1 ? clean(row[idxCustCode]) : "",
+                        billDoc: idxBillDoc > -1 ? clean(row[idxBillDoc]) : "",
+                        billDate: idxBillDate > -1 ? clean(row[idxBillDate]) : "",
+                        used: 0
+                    };
+
+                    totalSysItemsInitial += item.qty;
+
+                    // Create multiple lookup keys for different match levels
+                    // Key format: "material|batch|serial"
+                    const fullKey = `${item.mat}|${item.batch}|${item.ser}`;
+                    const batchKey = `${item.mat}|${item.batch}|`;
+                    const matKey = `${item.mat}||`;
+
+                    // Store with full key as primary
+                    if (!inventoryMap.has(fullKey)) inventoryMap.set(fullKey, []);
+                    inventoryMap.get(fullKey).push(item);
+
+                    // Also index by batch and material for fallback matching
+                    if (!inventoryMap.has(batchKey)) inventoryMap.set(batchKey, []);
+                    inventoryMap.get(batchKey).push(item);
+
+                    if (!inventoryMap.has(matKey)) inventoryMap.set(matKey, []);
+                    inventoryMap.get(matKey).push(item);
+
+                    // Smart Zero Alias Keys
+                    if (smartZero) {
+                        const shortMat = String(parseFloat(item.mat));
+                        if (shortMat !== item.mat && !isNaN(parseFloat(item.mat))) {
+                            const fullKeyS = `${shortMat}|${item.batch}|${item.ser}`;
+                            const batchKeyS = `${shortMat}|${item.batch}|`;
+                            const matKeyS = `${shortMat}||`;
+
+                            if (!inventoryMap.has(fullKeyS)) inventoryMap.set(fullKeyS, []);
+                            inventoryMap.get(fullKeyS).push(item);
+                            if (!inventoryMap.has(batchKeyS)) inventoryMap.set(batchKeyS, []);
+                            inventoryMap.get(batchKeyS).push(item);
+                            if (!inventoryMap.has(matKeyS)) inventoryMap.set(matKeyS, []);
+                            inventoryMap.get(matKeyS).push(item);
+                        }
+                    }
+                }
+
+                console.log(`Auto-loaded ${inventoryMap.size} inventory keys.`);
+            } catch (e) {
+                console.error("Auto-load failed:", e);
+            }
+        }
+
+        const getCustomAIs = () => ({
+            mat: document.getElementById('aiMaterial')?.value || '240',
+            batch: document.getElementById('aiBatch')?.value || '10',
+            ser: document.getElementById('aiSerial')?.value || '21'
+        });
+
+        // --- PRO BARCODE PARSER (GS1-128, Bracketed & Fallback) ---
+        const parseProBarcode = (raw, rowNum = 0) => {
+            if (!raw) return { mat: "", isValid: false, error: "Empty" };
+            let s = String(raw).trim();
+            const cf = getCustomAIs();
+            let res = { mat: "", batch: "", ser: "", isDefaultSer: false, isValid: false, error: "", qty: null, expiryDate: null };
+
+            // 1. BRACKETED FORMAT (e.g. (01)123(10)ABC)
+            if (s.includes('(')) {
+                s = s.replace(/[\u0000-\u001F]/g, ""); // Clean control chars
+
+                const extract = (aiList) => {
+                    if (!Array.isArray(aiList)) aiList = [aiList];
+                    for (let ai of aiList) {
+                        const regex = new RegExp(`\\(${ai}\\)([^()]+)`);
+                        const m = s.match(regex);
+                        if (m) return m[1].trim();
+                    }
+                    return null;
+                };
+
+                let mat = extract([cf.mat, '01', '02', '240', '241']);
+                let batch = extract([cf.batch, '10', '23', '310']);
+                let ser = extract([cf.ser, '21', '250']);
+                let qty = extract(['37', '30']);
+                let expStr = extract(['17', '15']);
+
+                if (mat) {
+                    res.mat = clean(mat);
+                    if (res.mat.length === 14 && res.mat.startsWith('00')) res.mat = res.mat.substring(2);
+                    res.isValid = true;
+                } else {
+                    res.error = "Missing Material AI";
+                }
+
+                if (batch) res.batch = clean(batch);
+                else { res.batch = "-"; }
+
+                if (ser) res.ser = clean(ser);
+                else { res.ser = "001"; res.isDefaultSer = true; }
+
+                if (qty) {
+                    let q = parseFloat(qty);
+                    if (!isNaN(q)) res.qty = q;
+                }
+
+                if (expStr && expStr.length >= 6) {
+                    try {
+                        let dStr = expStr.substring(0, 6);
+                        const yy = parseInt(dStr.substring(0, 2));
+                        const mm = parseInt(dStr.substring(2, 4));
+                        const dd = parseInt(dStr.substring(4, 6));
+                        res.expiryDate = new Date(2000 + yy, mm - 1, dd);
+                    } catch (e) { }
+                }
+
+                return res;
+            }
+
+            // 2. RAW / FALLBACK (Material Only)
+            if (s.length > 3) {
+                res.mat = clean(s);
+                res.batch = "-";
+                res.ser = "001";
+                res.isDefaultSer = true;
+                res.isValid = true;
+                res.error = "";
+                return res;
+            }
+
+            return res;
+        };
 
         // --- MAIN ---
         async function runValidation() {
@@ -1930,100 +2378,25 @@
                 updateProgress(10, 'Reading files...');
                 const [rawScan, rawSys] = await Promise.all([readXlsx(fScan), readXlsx(fSys)]);
 
-                // Map System with progress tracking
-                updateProgress(20, 'Parsing SAP system data...');
-                const sysHeadRow = rawSys.findIndex(row => row.join("").toLowerCase().includes("material"));
-                if (sysHeadRow === -1) throw new Error("System file missing 'Material' header.");
-                const sysHeaders = rawSys[sysHeadRow].map(h => String(h).toLowerCase());
-
-                const idxMat = sysHeaders.findIndex(h => h.includes("material"));
-                const idxBatch = sysHeaders.findIndex(h => h.includes("batch") || h.includes("lot"));
-                const idxSer = sysHeaders.findIndex(h => h.includes("serial") || h.includes("sno"));
-                const idxQty = sysHeaders.findIndex(h => h.includes("qty") || h.includes("count") || h.includes("unrestricted"));
-                const idxPlant = sysHeaders.findIndex(h => h.includes("plant") || h.includes("werks") || h.includes("site"));
-                const idxSloc = sysHeaders.findIndex(h => h.includes("sloc") || h.includes("loc"));
-                const idxExpiry = sysHeaders.findIndex(h => h.includes("sled") || h.includes("bbd") || h.includes("expiry"));
-
-                // V13: Helper indices
-                const idxMatchDesc = sysHeaders.findIndex(h => h.includes("desc") || h.includes("text") || h.includes("material description"));
-                const idxDesc = idxMatchDesc > -1 ? idxMatchDesc : sysHeaders.findIndex(h => h.includes("name")); // Fallback
-
-                // Enhanced Customer Detection
-                const idxCustName = sysHeaders.findIndex(h => h.includes("name") || (h.includes("cust") && h.includes("desc")));
-                const idxCustCode = sysHeaders.findIndex(h =>
-                    (h.includes("cust") && (h.includes("code") || h.includes("id") || h.includes("no") || h.includes("num"))) ||
-                    h.includes("sold-to") || h.includes("ship-to") || h.includes("payer") || h.includes("party") || h.includes("kunnr") ||
-                    (h.includes("customer") && !h.includes("name"))
-                );
-
-                // Build Map-based inventory for O(1) lookups
-                const inventoryMap = new Map();
-                let totalSysItemsInitial = 0;  // Count items, not quantities
-
-                for (let i = sysHeadRow + 1; i < rawSys.length; i++) {
-                    const row = rawSys[i];
-                    if (!row[idxMat]) continue;
-
-                    const item = {
-                        mat: clean(row[idxMat]),
-                        batch: clean(row[idxBatch]),
-                        ser: idxSer > -1 ? clean(row[idxSer]) : "",
-                        qty: idxQty > -1 ? (parseFloat(row[idxQty]) || 1) : 1,
-                        plant: idxPlant > -1 ? clean(row[idxPlant]) : "-",
-                        sloc: idxSloc > -1 ? clean(row[idxSloc]) : "-",
-                        expiry: idxExpiry > -1 ? clean(row[idxExpiry]) : "-",
-                        desc: idxDesc > -1 ? clean(row[idxDesc]) : "",
-                        custName: idxCustName > -1 ? clean(row[idxCustName]) : "",
-                        custCode: idxCustCode > -1 ? clean(row[idxCustCode]) : "",
-                        used: 0
-                    };
-
-                    totalSysItemsInitial += item.qty; // --- [UPDATED LOGIC]: Count Qty not just Rows
-
-                    // Create multiple lookup keys for different match levels
-                    // Key format: "material|batch|serial"
-                    const fullKey = `${item.mat}|${item.batch}|${item.ser}`;
-                    const batchKey = `${item.mat}|${item.batch}|`;
-                    const matKey = `${item.mat}||`;
-
-                    // Store with full key as primary
-                    if (!inventoryMap.has(fullKey)) {
-                        inventoryMap.set(fullKey, []);
-                    }
-                    inventoryMap.get(fullKey).push(item);
-
-                    // Also index by batch and material for fallback matching
-                    if (!inventoryMap.has(batchKey)) {
-                        inventoryMap.set(batchKey, []);
-                    }
-                    inventoryMap.get(batchKey).push(item);
-
-                    if (!inventoryMap.has(matKey)) {
-                        inventoryMap.set(matKey, []);
-                    }
-                    inventoryMap.get(matKey).push(item);
-
-                    // --- [UPDATED LOGIC]: Smart Zero Alias Keys ---
-                    if (smartZero) {
-                        // Strip leading zeros
-                        const shortMat = String(parseFloat(item.mat));
-                        if (shortMat !== item.mat && !isNaN(parseFloat(item.mat))) {
-                            const fullKeyS = `${shortMat}|${item.batch}|${item.ser}`;
-                            const batchKeyS = `${shortMat}|${item.batch}|`;
-                            const matKeyS = `${shortMat}||`;
-
-                            if (!inventoryMap.has(fullKeyS)) inventoryMap.set(fullKeyS, []);
-                            inventoryMap.get(fullKeyS).push(item);
-                            if (!inventoryMap.has(batchKeyS)) inventoryMap.set(batchKeyS, []);
-                            inventoryMap.get(batchKeyS).push(item);
-                            if (!inventoryMap.has(matKeyS)) inventoryMap.set(matKeyS, []);
-                            inventoryMap.get(matKeyS).push(item);
-                        }
-                    }
+                // Check if already loaded by auto-load
+                if (inventoryMap.size === 0) {
+                    updateProgress(20, 'Parsing SAP system data...');
+                    await loadSystemInventory(fSys);
                 }
 
                 // KPI will be updated later after counting all items in the Map
                 log(`Loaded ${inventoryMap.size} unique inventory keys`);
+
+                // Reset usage counts for re-runs to prevents stale state
+                const resetCache = new Set();
+                inventoryMap.forEach(items => {
+                    items.forEach(item => {
+                        if (!resetCache.has(item)) {
+                            item.used = 0;
+                            resetCache.add(item);
+                        }
+                    });
+                });
 
                 // --- DUPLICATE DETECTION ---
                 updateProgress(30, 'Checking for duplicate serials...');
@@ -2157,16 +2530,22 @@
                     const raw = rawScan[i][scanCol];
                     if (!raw) continue;
 
-                    // --- [UPDATED LOGIC]: Read Scan Quantity if column exists ---
+                    const actualRowNum = i + 1;
+
+                    // Parse with Pro Parser (GS1-128 / Multi-AI)
+                    const p = parseProBarcode(raw, actualRowNum);
+
+                    // --- [UPDATED LOGIC]: Read Scan Quantity ---
+                    // Priority: 1. Barcode Qty (AI 37), 2. Qty Column, 3. Default 1
                     let currentScanQty = 1;
-                    if (scanQtyCol > -1) {
+                    if (p.qty) {
+                        currentScanQty = p.qty;
+                    } else if (scanQtyCol > -1) {
                         let val = parseFloat(rawScan[i][scanQtyCol]);
                         if (!isNaN(val) && val > 0) currentScanQty = val;
                     }
-                    stats.tot += currentScanQty; // Count total quantity, not just rows
+                    stats.tot += currentScanQty;
                     // ------------------------------------------------------------
-
-                    const actualRowNum = i + 1; // Excel row number (1-indexed)
 
                     // Update progress every 100 rows
                     if (i % 100 === 0) {
@@ -2174,14 +2553,11 @@
                         updateProgress(progress, `Processing scan ${i} of ${totalScans}...`);
                     }
 
-                    // Parse with error tracking
-                    const p = parseGS1(raw, actualRowNum);
-
                     // Parse condition from Column B
                     const condition = conditionCol >= 0 ? clean(rawScan[i][conditionCol]) : '';
 
                     // Parse expiry date from barcode
-                    const expiryDate = parseGS1Expiry(raw);
+                    const expiryDate = p.expiryDate || parseGS1Expiry(raw);
 
                     // Classify stock status
                     const stockStatus = classifyMaterialStatus(condition, expiryDate, expirySettings);
@@ -2279,10 +2655,22 @@
                         match.used += consumeAmount;
 
                         stats.s += consumeAmount; // Add matched quantity
-                        status = "Matched"; css = "bg-green-100 text-green-800";
+
+                        // Check for Partial/Variance (Over-consumption)
+                        if (consumeAmount < currentScanQty) {
+                            let diff = currentScanQty - consumeAmount;
+                            stats.v += diff;
+                            status = "Variance (Partial)";
+                            css = "bg-red-50 text-red-900 border-l-4 border-red-500";
+                            detail += ` | Stock Exhausted. Matched: ${consumeAmount}, Variance: ${diff}`;
+                            statusPriority = 4; // High priority to show error
+                        } else {
+                            status = "Matched"; css = "bg-green-100 text-green-800";
+                            statusPriority = 3;
+                        }
+
                         if (logic !== "Concat") logic = "Exact";
-                        sysBatchFound = match.batch; sysSerFound = match.ser; sysPlantFound = match.plant || "-"; sysExpiryFound = match.expiry || "-"; sysSlocFound = match.sloc || "-"; detail = msgMatch;
-                        statusPriority = 3;
+                        sysBatchFound = match.batch; sysSerFound = match.ser; sysPlantFound = match.plant || "-"; sysExpiryFound = match.expiry || "-"; sysSlocFound = match.sloc || "-";
                     } else {
                         // Fallback to batch match
                         const batchKey = `${p.mat}|${p.batch}|`;
@@ -2295,9 +2683,21 @@
                             match.used += consumeAmount;
 
                             stats.b += consumeAmount;
-                            status = "Partial"; css = "bg-yellow-100 text-yellow-800";
-                            logic = "Batch Match"; sysBatchFound = match.batch; sysSerFound = match.ser; sysPlantFound = match.plant || "-"; sysExpiryFound = match.expiry || "-"; sysSlocFound = match.sloc || "-"; detail = msgBatch;
-                            statusPriority = 2;
+
+                            if (consumeAmount < currentScanQty) {
+                                let diff = currentScanQty - consumeAmount;
+                                stats.v += diff;
+                                status = "Variance (Partial)";
+                                css = "bg-red-50 text-red-900 border-l-4 border-red-500";
+                                detail = msgBatch + ` | Stock Exhausted. Matched: ${consumeAmount}, Variance: ${diff}`;
+                                statusPriority = 4;
+                            } else {
+                                status = "Partial"; css = "bg-yellow-100 text-yellow-800";
+                                detail = msgBatch;
+                                statusPriority = 2;
+                            }
+
+                            logic = "Batch Match"; sysBatchFound = match.batch; sysSerFound = match.ser; sysPlantFound = match.plant || "-"; sysExpiryFound = match.expiry || "-"; sysSlocFound = match.sloc || "-";
                         } else {
                             // Fallback to material-only match
                             const matKey = `${p.mat}||`;
@@ -2310,9 +2710,21 @@
                                 match.used += consumeAmount;
 
                                 stats.m += consumeAmount;
-                                status = "Warning"; css = "bg-orange-100 text-orange-800";
-                                logic = "Material Only"; sysBatchFound = match.batch; sysSerFound = match.ser; sysPlantFound = match.plant || "-"; sysExpiryFound = match.expiry || "-"; sysSlocFound = match.sloc || "-"; detail = msgMat;
-                                statusPriority = 1;
+
+                                if (consumeAmount < currentScanQty) {
+                                    let diff = currentScanQty - consumeAmount;
+                                    stats.v += diff;
+                                    status = "Variance (Partial)";
+                                    css = "bg-red-50 text-red-900 border-l-4 border-red-500";
+                                    detail = msgMat + ` | Stock Exhausted. Matched: ${consumeAmount}, Variance: ${diff}`;
+                                    statusPriority = 4;
+                                } else {
+                                    status = "Warning"; css = "bg-orange-100 text-orange-800";
+                                    detail = msgMat;
+                                    statusPriority = 1;
+                                }
+
+                                logic = "Material Only"; sysBatchFound = match.batch; sysSerFound = match.ser; sysPlantFound = match.plant || "-"; sysExpiryFound = match.expiry || "-"; sysSlocFound = match.sloc || "-";
                             } else {
                                 stats.v += currentScanQty;
                             }
@@ -2341,7 +2753,14 @@
                     let finalCust = match ? (match.custName || scanCust || masterCustName || "") : (scanCust || masterCustName || "");
 
                     // S.Loc Logic (V13): Configurable S.Locs
-                    let finalSloc = (stockStatus.status === 'GOOD STOCK') ? goodSlocCode : dmgSlocCode;
+                    const enableAutoSloc = document.getElementById('autoSloc')?.checked ?? true;
+                    let finalSloc = "";
+
+                    if (enableAutoSloc) {
+                        finalSloc = (stockStatus.status === 'GOOD STOCK') ? goodSlocCode : dmgSlocCode;
+                    } else {
+                        finalSloc = sysSlocFound || "";
+                    }
 
                     globalData.push({
                         status, css, statusPriority, logic, detail,
@@ -2352,6 +2771,7 @@
                         phyBatch: p.batch, phySer: p.ser,
                         sysBatch: sysBatchFound, sysSer: sysSerFound, sysPlant: sysPlantFound,
                         sysExpiry: sysExpiryFound,
+                        sysAge: match ? (match.age || "-") : "-",
                         sysSloc: sysSlocFound,
                         sLoc: finalSloc, // New Column
                         isDefaultSer: p.isDefaultSer,
@@ -2457,12 +2877,23 @@
 
             // 1. Dynamic Headers
             if (thead) {
-                thead.innerHTML = layout.columns.map(c => `
-                    <th class="px-4 py-3 border-b relative ${c.key.includes('phy') ? 'th-phy border-l' : ''} ${c.key.includes('sys') && c.key !== 'sysPlant' ? 'th-sys' : ''}" onclick="sortBy('${c.key}')">
-                        ${c.header} <i id="icon-${c.key}" class="fas fa-sort text-gray-400 ml-1"></i>
+                thead.innerHTML = layout.columns.map(c => {
+                    const isFiltered = activeFilters && activeFilters[c.key];
+                    const iconClass = isFiltered
+                        ? "fas fa-filter text-blue-600 bg-blue-50 ml-2 cursor-pointer p-1 rounded active-filter-icon shadow-sm border border-blue-200"
+                        : "fas fa-filter text-gray-300 hover:text-blue-600 ml-2 cursor-pointer p-1 rounded hover:bg-gray-100 active-filter-icon";
+
+                    return `
+                    <th class="px-4 py-3 border-b relative ${c.key.includes('phy') ? 'th-phy border-l' : ''} ${c.key.includes('sys') && c.key !== 'sysPlant' ? 'th-sys' : ''}">
+                        <div class="flex items-center justify-between group">
+                            <div class="flex items-center cursor-pointer flex-1 hover:text-blue-700" onclick="sortBy('${c.key}')">
+                                ${c.header} <i id="icon-${c.key}" class="fas fa-sort text-gray-400 ml-1 opacity-50 group-hover:opacity-100"></i>
+                            </div>
+                            <i onclick="openSuperFilter('${c.key}', event)" class="${iconClass}" id="filter-icon-${c.key}" title="Filter ${c.header}"></i>
+                        </div>
                         <div class="resizer"></div>
                     </th>
-                `).join('');
+                `}).join('');
                 // Reinitialize resize after header change
                 setTimeout(initResize, 100);
             }
@@ -2544,6 +2975,16 @@
                             content = r.sysExpiry || '-';
                             break;
 
+                        case 'billDoc':
+                            cellClass += ' text-gray-700 font-mono';
+                            content = r.billDoc || '-';
+                            break;
+
+                        case 'billDate':
+                            cellClass += ' text-gray-700';
+                            content = r.billDate || '-';
+                            break;
+
                         case 'daysLeft':
                             cellClass += ' fw-bold text-right';
                             content = r.stockStatus?.daysLeft !== null && r.stockStatus?.daysLeft !== undefined ? r.stockStatus.daysLeft + 'd' : '-';
@@ -2575,15 +3016,296 @@
             }).join('');
         }
 
+        // ==========================================
+        // SUPER FILTER LOGIC
+        // ==========================================
+        let activeFilters = {};
+
+        function openSuperFilter(key, event) {
+            event.stopPropagation();
+            const existing = document.querySelector('.super-filter-panel');
+            if (existing) existing.remove();
+
+            const panel = document.createElement('div');
+            panel.className = 'super-filter-panel animate-fade';
+
+            // Positioning
+            let left = event.pageX;
+            if (left + 280 > window.innerWidth) left = window.innerWidth - 300;
+            panel.style.left = `${left}px`;
+            panel.style.top = `${event.pageY + 10}px`;
+
+            // Data Analysis
+            const counts = {};
+            let isNumeric = true;
+            let isDate = key.toLowerCase().includes('date') || key.toLowerCase().includes('expiry');
+
+            globalData.forEach(r => {
+                const v = r[key] || "(Blank)";
+                counts[v] = (counts[v] || 0) + 1;
+                // Check numeric
+                if (isNumeric && v !== "(Blank)" && isNaN(parseFloat(v))) isNumeric = false;
+            });
+            const uniqueValues = Object.keys(counts).sort();
+
+            // Active State
+            const active = activeFilters[key] || { values: null, min: "", max: "" };
+            const minVal = active.min || "";
+            const maxVal = active.max || "";
+
+            let html = `
+                <div class="filter-header">
+                    <span class="font-bold text-xs uppercase text-gray-500 tracking-wider">Filter: ${key}</span>
+                    <button onclick="this.closest('.super-filter-panel').remove()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+                </div>
+                
+                <!-- SORT BUTTONS -->
+                <div class="p-2 border-b bg-gray-50 flex gap-2">
+                    <button onclick="sortBy('${key}', 'asc'); document.querySelector('.super-filter-panel').remove()" class="flex-1 bg-white border rounded p-1 text-xs hover:bg-blue-50 text-gray-600 flex items-center justify-center gap-1 shadow-sm"><i class="fas fa-arrow-down-a-z text-blue-500"></i> ${isNumeric ? 'Smallest' : 'Ascending'}</button>
+                    <button onclick="sortBy('${key}', 'desc'); document.querySelector('.super-filter-panel').remove()" class="flex-1 bg-white border rounded p-1 text-xs hover:bg-blue-50 text-gray-600 flex items-center justify-center gap-1 shadow-sm"><i class="fas fa-arrow-down-z-a text-blue-500"></i> ${isNumeric ? 'Largest' : 'Descending'}</button>
+                </div>
+
+                <!-- RANGE / CONDITION FILTER -->
+                <div class="p-2 border-b bg-white">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase mb-1">
+                         ${isDate ? 'Date Range' : (isNumeric ? 'Number Range' : 'Text Search')}
+                    </div>
+            `;
+
+            if (isNumeric || isDate) {
+                html += `
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="filter-min-${key}" value="${minVal}" placeholder="${isDate ? 'YYYY-MM-DD' : 'Min / >'}" class="w-1/2 text-xs p-1 border rounded focus:border-blue-500">
+                        <input type="text" id="filter-max-${key}" value="${maxVal}" placeholder="${isDate ? 'YYYY-MM-DD' : 'Max / <'}" class="w-1/2 text-xs p-1 border rounded focus:border-blue-500">
+                    </div>
+                 `;
+            }
+
+            html += `
+                    <input type="text" placeholder="Search List..." class="w-full text-xs p-2 border rounded bg-gray-50 focus:bg-white focus:outline-blue-500 transition" onkeyup="filterFilterList(this)">
+                </div>
+                
+                <div class="filter-body text-left">
+                    <label class="filter-row font-bold text-blue-600 border-b mb-1 pb-1">
+                        <input type="checkbox" onchange="toggleAllFilters(this)" class="mr-2 rounded text-blue-600">
+                        Select All
+                    </label>
+            `;
+
+            uniqueValues.forEach(v => {
+                const safeV = String(v).replace(/"/g, '&quot;');
+                // Check logic: If filter is active, check if value in set. If NO filter active (new), keys checked? 
+                // Usually "Select All". If active filter exists, use it.
+                // If active.values is NULL, it means "All Selected" (implied) or range only.
+                // If filter exists but values is null, assume all checked.
+                const isChecked = (!activeFilters[key] || !activeFilters[key].values || activeFilters[key].values.has(v)) ? 'checked' : '';
+
+                html += `
+                    <label class="filter-row">
+                        <input type="checkbox" value="${safeV}" ${isChecked} class="mr-2 rounded text-blue-600 filter-check">
+                        <span class="text-xs truncate flex-1" title="${safeV}">${v}</span>
+                        <span class="text-[10px] text-gray-400 bg-gray-100 px-1 rounded ml-1">${counts[v]}</span>
+                    </label>
+                `;
+            });
+
+            html += `</div>
+                <div class="filter-footer">
+                    <button onclick="clearFilter('${key}')" class="text-xs text-gray-500 font-bold hover:text-red-600 mr-auto">Clear</button>
+                    <button onclick="applyFilter('${key}', this)" class="bg-blue-600 text-white px-4 py-1.5 rounded text-xs font-bold hover:bg-blue-700 shadow-sm transition">APPLY</button>
+                </div>
+            `;
+
+            panel.innerHTML = html;
+            document.body.appendChild(panel);
+
+            setTimeout(() => {
+                const closer = (e) => {
+                    if (!panel.contains(e.target) && !e.target.closest('.active-filter-icon')) {
+                        panel.remove();
+                        document.removeEventListener('click', closer);
+                    }
+                };
+                document.addEventListener('click', closer);
+            }, 100);
+        }
+
+        function filterFilterList(input) {
+            const term = input.value.toLowerCase();
+            const labels = input.parentElement.parentElement.querySelectorAll('.filter-body .filter-row:not(:first-child)'); // Adjusted selector
+            labels.forEach(l => {
+                const txt = l.querySelector('span').innerText.toLowerCase();
+                l.style.display = txt.includes(term) ? 'flex' : 'none';
+            });
+        }
+
+        function toggleAllFilters(source) {
+            const inputs = source.closest('.filter-body').querySelectorAll('.filter-check');
+            inputs.forEach(i => {
+                if (i.parentElement.style.display !== 'none') i.checked = source.checked;
+            });
+        }
+
+        function applyFilter(key, btn) {
+            const panel = btn.closest('.super-filter-panel');
+            const inputs = panel.querySelectorAll('.filter-check:checked');
+            const totalInputs = panel.querySelectorAll('.filter-check').length;
+            const values = new Set();
+            inputs.forEach(i => values.add(i.value));
+
+            // Logic: Is it a Subset?
+            // If Checked < Total, we have a list filter.
+            // OR if Range inputs have value.
+
+            const minInput = document.getElementById(`filter-min-${key}`);
+            const maxInput = document.getElementById(`filter-max-${key}`);
+            const minVal = minInput ? minInput.value.trim() : "";
+            const maxVal = maxInput ? maxInput.value.trim() : "";
+
+            const hasRange = minVal !== "" || maxVal !== "";
+            // Special Case: If ALL checked and NO range => No Filter.
+            // If SOME checked OR Range => Filter Active.
+
+            if (inputs.length === totalInputs && !hasRange) {
+                // Clear Filter
+                delete activeFilters[key];
+                const icon = document.getElementById('filter-icon-' + key);
+                if (icon) icon.className = 'fas fa-filter text-gray-300 hover:text-blue-600 ml-2 cursor-pointer p-1 rounded hover:bg-gray-100 active-filter-icon';
+            } else {
+                // Active Filter
+                activeFilters[key] = {
+                    type: 'complex',
+                    values: inputs.length < totalInputs ? values : null, // Null means "All List Items" (checked)
+                    min: minVal,
+                    max: maxVal
+                };
+                const icon = document.getElementById('filter-icon-' + key);
+                if (icon) icon.className = 'fas fa-filter text-blue-600 bg-blue-50 ml-2 cursor-pointer p-1 rounded active-filter-icon shadow-sm border border-blue-200';
+            }
+
+            if (panel) panel.remove();
+            runSuperFilter();
+        }
+
+        function clearFilter(key) {
+            delete activeFilters[key];
+            const icon = document.getElementById('filter-icon-' + key);
+            if (icon) icon.className = 'fas fa-filter text-gray-300 hover:text-blue-600 ml-2 cursor-pointer p-1 rounded hover:bg-gray-100 active-filter-icon';
+
+            const panel = document.querySelector('.super-filter-panel');
+            if (panel) panel.remove();
+
+            runSuperFilter();
+        }
+
+        function runSuperFilter() {
+            filterData();
+        }
+
         function filterData() {
             const term = document.getElementById('searchBox').value.toLowerCase();
-            displayedData = globalData.filter(r =>
-                r.mat.toLowerCase().includes(term) ||
-                r.phyBatch.toLowerCase().includes(term) ||
-                r.phySer.toLowerCase().includes(term) ||
-                r.sysBatch.toLowerCase().includes(term)
-            );
+
+            displayedData = globalData.filter(r => {
+                // 1. Global Search
+                if (term) {
+                    const matchGlobal = Object.values(r).some(v => String(v).toLowerCase().includes(term));
+                    if (!matchGlobal) return false;
+                }
+
+                // 2. Super Filters
+                for (const key in activeFilters) {
+                    const f = activeFilters[key];
+                    let val = r[key];
+
+                    // A) List Filter (Set) - Only if values is NOT null
+                    if (f.values) {
+                        const safeV = String(val || "(Blank)").replace(/"/g, '&quot;');
+                        if (!f.values.has(safeV)) return false;
+                    }
+
+                    // B) Range Filter (Min/Max)
+                    if (f.min || f.max) {
+                        let numVal = parseFloat(val);
+                        // Date parsing if key implies?
+                        if (key.toLowerCase().includes('date') || key.toLowerCase().includes('expiry')) {
+                            // Attempt to parse Date
+                            let d = new Date(val); // Assuming val is Date obj or string
+                            if (val instanceof Date) d = val;
+                            // Compare time?
+                            if (f.min) {
+                                let minD = new Date(f.min);
+                                if (!isNaN(minD) && d < minD) return false;
+                            }
+                            if (f.max) {
+                                let maxD = new Date(f.max);
+                                if (!isNaN(maxD) && d > maxD) return false;
+                            }
+                        } else if (!isNaN(numVal)) {
+                            // Numeric
+                            if (f.min !== "" && !isNaN(parseFloat(f.min)) && numVal < parseFloat(f.min)) return false;
+                            if (f.max !== "" && !isNaN(parseFloat(f.max)) && numVal > parseFloat(f.max)) return false;
+                        }
+                    }
+                }
+
+                return true;
+            });
+
             renderTable(displayedData);
+            updateFilterChips();
+        }
+
+        function updateFilterChips() {
+            const bar = document.getElementById('activeFiltersBar');
+            if (!bar) return;
+
+            if (Object.keys(activeFilters).length === 0) {
+                bar.innerHTML = '';
+                bar.classList.add('hidden');
+                return;
+            }
+
+            bar.classList.remove('hidden');
+            let html = '<span class="text-xs font-bold text-gray-400 mr-2 flex items-center uppercase tracking-wider"><i class="fas fa-filter mr-1"></i> Active:</span>';
+
+            for (const key in activeFilters) {
+                const f = activeFilters[key];
+                // Lookup header label
+                const layout = layouts[activeLayoutId];
+                const colDef = layout.columns.find(c => c.key === key);
+                const label = colDef ? colDef.header : key;
+
+                let parts = [];
+                // List Filter
+                if (f.values) {
+                    const arr = [...f.values];
+                    // Unescape for display
+                    if (arr.length === 1) parts.push(arr[0].replace(/&quot;/g, '"'));
+                    else parts.push(`${arr.length} selected`);
+                }
+
+                // Range Filter
+                if (f.min) parts.push(`≥ ${f.min}`);
+                if (f.max) parts.push(`≤ ${f.max}`);
+
+                if (parts.length === 0) parts.push("Active");
+
+                html += `
+                    <div class="filter-chip">
+                        <span class="text-blue-800">${label}: <b class="text-black">${parts.join(' & ')}</b></span>
+                        <button onclick="clearFilter('${key}')" class="hover:bg-blue-200 rounded-full w-4 h-4 flex items-center justify-center"><i class="fas fa-times text-[9px]"></i></button>
+                    </div>
+                `;
+            }
+
+            html += `<button onclick="clearAllFilters()" class="text-[10px] text-gray-500 hover:text-red-600 underline ml-2 font-bold decoration-dotted">CLEAR ALL</button>`;
+            bar.innerHTML = html;
+        }
+
+        function clearAllFilters() {
+            activeFilters = {};
+            document.querySelectorAll('.active-filter-icon').forEach(i => i.className = 'fas fa-filter text-gray-300 hover:text-blue-600 ml-2 cursor-pointer p-1 rounded hover:bg-gray-100 active-filter-icon');
+            filterData();
         }
 
         function exportResult() {
@@ -2623,8 +3345,14 @@
                         case 'condition': val = item.condition; break;
                         case 'expiry date': val = item.expiryDate ? item.expiryDate.toLocaleDateString('en-GB') : ""; break;
                         case 'sys expiry': val = item.sysExpiry; break;
+                        case 'ageing': val = item.sysAge; break;
                         case 'days left': val = item.stockStatus?.daysLeft !== undefined && item.stockStatus?.daysLeft !== null ? item.stockStatus.daysLeft : ""; break;
                         case 'stock status': val = item.stockStatus?.status || ""; break;
+                        case 'bill doc':
+                        case 'billing doc':
+                        case 'billing document': val = item.billDoc || ""; break;
+                        case 'bill date':
+                        case 'billing date': val = item.billDate || ""; break;
                         case 'comment': val = item.detail; break;
                         default: val = "";
                     }
@@ -2695,6 +3423,7 @@
         // Init
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
+            initDB();
             initResize();
             renderQuickExportButtons();
         });
@@ -2709,6 +3438,8 @@
             { key: 'logic', label: 'Logic', default: true },
             { key: 'mat', label: 'Material', default: true },
             { key: 'desc', label: 'Description', default: true },
+            { key: 'billDoc', label: 'Billing Doc', default: true },
+            { key: 'billDate', label: 'Billing Date', default: true },
             { key: 'cust', label: 'Customer Name', default: true },
             { key: 'custCode', label: 'Customer Code', default: true },
             { key: 'sysPlant', label: 'Plant', default: true },
@@ -2720,6 +3451,7 @@
             { key: 'condition', label: 'Condition', default: true },
             { key: 'expiryDate', label: 'Expiry Date', default: false },
             { key: 'sysExpiry', label: 'Sys Expiry', default: false },
+            { key: 'sysAge', label: 'Ageing', default: true },
             { key: 'stockStatus', label: 'Stock Status', default: true },
             { key: 'detail', label: 'Comment', default: true },
             { key: 'raw', label: 'Scan String', default: false }
@@ -2902,6 +3634,505 @@
             const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
             XLSX.writeFile(wb, `${layout.name}_Export_${timestamp}.xlsx`);
         }
+
+        // ==========================================
+        // LIVE SCAN MODE LOGIC
+        // ==========================================
+
+        let liveSessionData = [];
+        let liveSessionStats = { matched: 0, variance: 0, duplicate: 0, total: 0 };
+        let liveScanActive = false;
+        let liveScanPaused = false;
+        let inventoryMapForLive = new Map(); // Deep copy for live consumption
+        let scannedSerials = new Set(); // For duplicate detection
+        let liveScanCondition = 'Good';
+
+        function setLiveCondition(cond) {
+            liveScanCondition = cond;
+            const btnGood = document.getElementById('btnCondGood');
+            const btnDamage = document.getElementById('btnCondDamage');
+            const header = document.querySelector('#liveScanModal > div:first-child');
+
+            // Reset styles
+            btnGood.className = 'px-6 py-2 rounded font-bold bg-transparent text-gray-300 hover:text-white transition';
+            btnDamage.className = 'px-6 py-2 rounded font-bold bg-transparent text-gray-300 hover:text-white transition';
+
+            if (cond === 'Good') {
+                btnGood.className = 'px-6 py-2 rounded font-bold bg-green-500 text-white shadow ring-2 ring-white';
+                header.className = 'bg-green-800 text-white p-4 flex justify-between items-center shadow-lg transition-colors duration-300';
+            } else {
+                btnDamage.className = 'px-6 py-2 rounded font-bold bg-red-600 text-white shadow ring-2 ring-white';
+                header.className = 'bg-red-800 text-white p-4 flex justify-between items-center shadow-lg transition-colors duration-300';
+            }
+            document.getElementById('liveScanInput').focus();
+        }
+
+        // Sound Generation
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (!audioCtx) audioCtx = new AudioContext();
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'success') {
+                oscillator.frequency.value = 800;
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.2);
+            } else if (type === 'error') {
+                oscillator.frequency.value = 300;
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'duplicate') {
+                // Double beep
+                oscillator.frequency.value = 600;
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.15);
+
+                setTimeout(() => {
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.frequency.value = 600;
+                    gain2.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    osc2.start(audioCtx.currentTime);
+                    osc2.stop(audioCtx.currentTime + 0.15);
+                }, 200);
+            }
+        }
+
+        function enableBulkMode() {
+            // Show bulk section immediately
+            const bulkSection = document.getElementById('bulkUploadSection');
+            bulkSection.classList.remove('hidden');
+
+            // Scroll to it
+            setTimeout(() => {
+                bulkSection.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+
+        function openLiveScanMode() {
+            // Check if SAP file uploaded - warning only, don't block
+            if (!inventoryMap || inventoryMap.size === 0) {
+                console.warn("Live Scan started without SAP data");
+                // Optional: alert("⚠️ Warning: No SAP file loaded. All scans will be 'Variance'.");
+            }
+
+            // Initialize session
+            liveSessionData = [];
+            liveSessionStats = { matched: 0, variance: 0, duplicate: 0, total: 0 };
+            scannedSerials = new Set();
+            liveScanActive = true;
+            liveScanPaused = false;
+
+            // Deep copy inventory map (Safely)
+            inventoryMapForLive = new Map();
+            const itemCache = new Map(); // Cache to preserve object references
+
+            if (inventoryMap && inventoryMap.size > 0) {
+                inventoryMap.forEach((items, key) => {
+                    const matchedItems = items.map(item => {
+                        if (!itemCache.has(item)) {
+                            // Link new live item to original to preserve shared state logic in live map
+                            itemCache.set(item, { ...item, used: item.used || 0 });
+                        }
+                        return itemCache.get(item);
+                    });
+                    inventoryMapForLive.set(key, matchedItems);
+                });
+            }
+
+            // Show modal
+            document.getElementById('liveScanModal').classList.remove('hidden');
+
+            // Focus input
+            setTimeout(() => {
+                const input = document.getElementById('liveScanInput');
+                input.value = '';
+                input.focus();
+            }, 100);
+
+            updateLiveStats();
+            renderLiveScansTable();
+        }
+
+        function closeLiveScanMode() {
+            if (liveSessionData.length > 0) {
+                if (!confirm("⚠️ Session data will be lost. Continue?")) return;
+            }
+            document.getElementById('liveScanModal').classList.add('hidden');
+            liveScanActive = false;
+        }
+
+        function toggleLivePause() {
+            liveScanPaused = !liveScanPaused;
+            const btn = document.getElementById('livePauseBtn');
+            const input = document.getElementById('liveScanInput');
+
+            if (liveScanPaused) {
+                btn.innerHTML = '<i class="fas fa-play mr-2"></i> RESUME';
+                btn.className = 'bg-green-500 hover:bg-green-600 px-4 py-2 rounded font-bold';
+                input.disabled = true;
+                input.classList.add('opacity-50');
+            } else {
+                btn.innerHTML = '<i class="fas fa-pause mr-2"></i> PAUSE';
+                btn.className = 'bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded font-bold';
+                input.disabled = false;
+                input.classList.remove('opacity-50');
+                input.focus();
+            }
+        }
+
+        // Main validation function
+        function validateLiveScan(barcode) {
+            if (liveScanPaused) return;
+
+            const parsed = parseProBarcode(barcode.trim());
+            if (!parsed || !parsed.mat) {
+                showLiveStatus('error', 'INVALID BARCODE', 'Could not parse barcode');
+                playSound('error');
+                return;
+            }
+
+            const { mat, batch, ser } = parsed;
+            const serialKey = `${mat}|${batch}|${ser}`;
+
+            // Check for duplicate
+            if (scannedSerials.has(serialKey)) {
+                showLiveStatus('duplicate', 'DUPLICATE SCAN', `Serial already scanned!`);
+                playSound('duplicate');
+                liveSessionStats.duplicate++;
+                liveSessionStats.total++;
+
+                liveSessionData.unshift({
+                    time: new Date().toLocaleTimeString(),
+                    mat, batch, ser,
+                    status: 'DUPLICATE',
+                    condition: liveScanCondition,
+                    detail: 'Already scanned in this session',
+                    barcode
+                });
+
+                updateLiveStats();
+                renderLiveScansTable();
+                return;
+            }
+
+            // Try to find and consume stock
+            let matchFound = false;
+            let matchDetail = '';
+
+            // Exact match
+            const exactKey = `${mat}|${batch}|${ser}`;
+            if (inventoryMapForLive.has(exactKey)) {
+                const items = inventoryMapForLive.get(exactKey);
+                for (let item of items) {
+                    if ((item.qty - item.used) > 0) {
+                        item.used++;
+                        matchFound = true;
+                        matchDetail = `Remaining: ${item.qty - item.used}`;
+                        break;
+                    }
+                }
+            }
+
+            // Batch match (if exact not found)
+            if (!matchFound) {
+                const batchKey = `${mat}|${batch}|`;
+                inventoryMapForLive.forEach((items, key) => {
+                    if (key.startsWith(batchKey) && !matchFound) {
+                        for (let item of items) {
+                            if ((item.qty - item.used) > 0) {
+                                item.used++;
+                                matchFound = true;
+                                matchDetail = `Batch match | Rem: ${item.qty - item.used}`;
+                                break;
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (matchFound) {
+                showLiveStatus('success', '✅ MATCHED', matchDetail);
+                playSound('success');
+                liveSessionStats.matched++;
+                scannedSerials.add(serialKey);
+
+                liveSessionData.unshift({
+                    time: new Date().toLocaleTimeString(),
+                    mat, batch, ser,
+                    status: 'MATCHED',
+                    condition: liveScanCondition,
+                    detail: matchDetail,
+                    barcode
+                });
+            } else {
+                showLiveStatus('error', '❌ VARIANCE', 'Not in SAP or Stock exhausted');
+                playSound('error');
+                liveSessionStats.variance++;
+                scannedSerials.add(serialKey);
+
+                liveSessionData.unshift({
+                    time: new Date().toLocaleTimeString(),
+                    mat, batch, ser,
+                    status: 'VARIANCE',
+                    condition: liveScanCondition,
+                    detail: 'Not found in SAP inventory',
+                    barcode
+                });
+            }
+
+            liveSessionStats.total++;
+            updateLiveStats();
+            renderLiveScansTable();
+        }
+
+        function showLiveStatus(type, text, detail) {
+            const card = document.getElementById('liveStatusCard');
+            const icon = document.getElementById('liveStatusIcon');
+            const textEl = document.getElementById('liveStatusText');
+            const detailEl = document.getElementById('liveStatusDetail');
+
+            card.classList.remove('hidden', 'bg-green-100', 'border-green-500', 'bg-red-100', 'border-red-500', 'bg-yellow-100', 'border-yellow-500');
+
+            if (type === 'success') {
+                card.className = 'mb-6 p-8 rounded-lg border-4 text-center bg-green-100 border-green-500';
+                icon.innerHTML = '✅';
+                textEl.className = 'text-4xl font-bold mb-2 text-green-800';
+            } else if (type === 'error') {
+                card.className = 'mb-6 p-8 rounded-lg border-4 text-center bg-red-100 border-red-500';
+                icon.innerHTML = '❌';
+                textEl.className = 'text-4xl font-bold mb-2 text-red-800';
+            } else if (type === 'duplicate') {
+                card.className = 'mb-6 p-8 rounded-lg border-4 text-center bg-yellow-100 border-yellow-500';
+                icon.innerHTML = '⚠️';
+                textEl.className = 'text-4xl font-bold mb-2 text-yellow-800';
+            }
+
+            textEl.textContent = text;
+            detailEl.textContent = detail;
+            detailEl.className = 'text-2xl text-gray-700';
+
+            // Auto hide after 2 seconds
+            setTimeout(() => {
+                card.classList.add('hidden');
+            }, 2000);
+        }
+
+        function updateLiveStats() {
+            document.getElementById('liveStatMatched').textContent = liveSessionStats.matched;
+            document.getElementById('liveStatVariance').textContent = liveSessionStats.variance;
+            document.getElementById('liveStatDuplicate').textContent = liveSessionStats.duplicate;
+            document.getElementById('liveStatTotal').textContent = liveSessionStats.total;
+        }
+
+        function renderLiveScansTable() {
+            const tbody = document.getElementById('liveScansTableBody');
+            if (liveSessionData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500">No scans yet...</td></tr>';
+                return;
+            }
+
+            const recent = liveSessionData.slice(0, 10);
+            tbody.innerHTML = recent.map((scan, index) => {
+                let statusClass = 'text-green-400';
+                if (scan.status === 'VARIANCE') statusClass = 'text-red-400';
+                if (scan.status === 'DUPLICATE') statusClass = 'text-yellow-400';
+
+                return `
+                    <tr class="border-b border-gray-700 hover:bg-gray-700">
+                        <td class="p-2">${liveSessionData.length - index}</td>
+                        <td class="p-2 font-mono text-xs">${scan.time}</td>
+                        <td class="p-2 font-mono">${scan.mat}</td>
+                        <td class="p-2 font-mono">${scan.batch}</td>
+                        <td class="p-2 font-mono">${scan.ser}</td>
+                        <td class="p-2 font-bold ${statusClass}">${scan.status}</td>
+                        <td class="p-2 text-xs text-gray-400">${scan.detail}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function finishLiveSession() {
+            if (liveSessionData.length === 0) {
+                alert("No scans to export!");
+                return;
+            }
+
+            // Export to Excel
+            const header = [
+                { v: 'S.No', t: 's', s: { font: { bold: true } } },
+                { v: 'Time', t: 's', s: { font: { bold: true } } },
+                { v: 'Condition', t: 's', s: { font: { bold: true } } },
+                { v: 'Material', t: 's', s: { font: { bold: true } } },
+                { v: 'Batch', t: 's', s: { font: { bold: true } } },
+                { v: 'Serial', t: 's', s: { font: { bold: true } } },
+                { v: 'Status', t: 's', s: { font: { bold: true } } },
+                { v: 'Detail', t: 's', s: { font: { bold: true } } },
+                { v: 'Barcode', t: 's', s: { font: { bold: true } } }
+            ];
+
+            const rows = liveSessionData.reverse().map((scan, index) => [
+                { v: index + 1, t: 'n' },
+                { v: scan.time, t: 's' },
+                { v: scan.condition || 'Good', t: 's' },
+                { v: scan.mat, t: 's' },
+                { v: scan.batch, t: 's' },
+                { v: scan.ser, t: 's' },
+                { v: scan.status, t: 's' },
+                { v: scan.detail, t: 's' },
+                { v: scan.barcode, t: 's' }
+            ]);
+
+            const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+            ws['!cols'] = [{ wch: 6 }, { wch: 12 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 30 }, { wch: 40 }];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Live Scan Session");
+
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            XLSX.writeFile(wb, `LiveScan_Session_${timestamp}.xlsx`);
+
+            alert(`✅ Session exported!\n\nMatched: ${liveSessionStats.matched}\nVariance: ${liveSessionStats.variance}\nDuplicates: ${liveSessionStats.duplicate}\nTotal: ${liveSessionStats.total}`);
+
+            closeLiveScanMode();
+        }
+
+        // --- DIAGNOSTICS / AUTO-TEST ---
+        async function runDiagnostics() {
+            if (!confirm("⚠️ WARNING: This will clear your current session and load TEST DATA. Continue?")) return;
+
+            // 1. Setup Mock System File
+            const mockSysData = [
+                ["Material", "Batch", "Serial", "Qty", "Description"],
+                ["MAT_EXACT", "BATCH1", "SER1", "10", "Exact Match Test"],
+                ["MAT_BATCH", "BATCH2", "SER_SYS", "10", "Batch Match Test"],
+                ["MAT_ONLY", "BATCH_SYS", "SER_SYS", "10", "Material Match Test"],
+                ["MAT_VAR", "B", "S", "1", "Variance Test"],
+                ["MAT_PARTIAL", "B", "S", "2", "Partial Qty Test"]
+            ];
+
+            // 2. Setup Mock Scan File
+            const mockScanData = [
+                ["Scan", "Qty", "Condition"],
+                ["(01)MAT_EXACT(10)BATCH1(21)SER1", "1", ""], // Exact
+                ["(01)MAT_BATCH(10)BATCH2(21)SER_SCAN", "1", ""], // Batch Only
+                ["(01)MAT_ONLY(10)BATCH_SCAN(21)SER_SCAN", "1", ""], // Material Only
+                ["(01)MAT_UNKNOWN(10)B(21)S", "1", ""], // Variance
+                ["(01)MAT_PARTIAL(10)B(21)S", "3", ""] // Sys 2, Scan 3 -> Expect Matched=2, Var=1
+            ];
+
+            const mockSysFile = { isMock: true, data: mockSysData, name: "TEST_SYSTEM.xlsx" };
+            const mockScanFile = { isMock: true, data: mockScanData, name: "TEST_SCAN.xlsx" };
+
+            // 3. Load System Data
+            updateProgress(10, "Loading Diagnostic Data...");
+            await loadSystemInventory(mockSysFile);
+
+            // 4. Trigger Validation
+            // We set global file variables to our mocks
+            // (Assuming fSys/fScan are globally accessible as seen in actualValidation usage)
+            try { fSys = mockSysFile; } catch (e) { window.fSys = mockSysFile; }
+            try { fScan = mockScanFile; } catch (e) { window.fScan = mockScanFile; }
+
+            // Ensure settings
+            if (document.getElementById('useScanQty')) document.getElementById('useScanQty').checked = true;
+
+            await actualValidation();
+
+            setTimeout(() => alert("✅ Auto-Test Complete!\n\nCheck Dashboard:\n- Exact Match: 1\n- Batch Match: 1\n- Material Match: 1\n- Variance: 2 (1 Unknown, 1 Partial)"), 500);
+        }
+
+        // --- LAYOUT MIGRATION ---
+        function ensureLayoutCompatibility() {
+            if (typeof layouts === 'undefined') return;
+            const newKeys = ['billDoc', 'billDate', 'mat', 'desc'];
+            let updated = false;
+            for (const id in layouts) {
+                const layout = layouts[id];
+                if (!layout.columns) continue;
+                newKeys.forEach(key => {
+                    const exists = layout.columns.find(c => c.key === key);
+                    if (!exists) {
+                        // Find definition in ALL_COLUMNS or create default
+                        let def = (typeof ALL_COLUMNS !== 'undefined') ? ALL_COLUMNS.find(c => c.key === key) : null;
+                        if (!def) {
+                            if (key === 'billDoc') def = { key: 'billDoc', label: 'Billing Doc', default: true };
+                            if (key === 'billDate') def = { key: 'billDate', label: 'Billing Date', default: true };
+                        }
+                        if (def) {
+                            layout.columns.push({ ...def, visible: true, width: 100 });
+                            updated = true;
+                        }
+                    }
+                });
+            }
+            if (updated && typeof saveLayoutsToStorage === 'function') saveLayoutsToStorage();
+            else if (updated) localStorage.setItem('inventoryLayouts_v13', JSON.stringify(layouts));
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            ensureLayoutCompatibility();
+            const liveScanInput = document.getElementById('liveScanInput');
+            if (liveScanInput) {
+                liveScanInput.addEventListener('change', (e) => {
+                    if (liveScanActive && !liveScanPaused) {
+                        validateLiveScan(e.target.value);
+                        e.target.value = '';
+                        e.target.focus();
+                    }
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    // Global Shortcuts
+                    if (e.altKey && (e.key === 'f' || e.key === 'F')) {
+                        e.preventDefault();
+                        const search = document.getElementById('searchBox');
+                        if (search) search.focus();
+                        return;
+                    }
+                    if (e.ctrlKey && e.shiftKey && (e.key === 'l' || e.key === 'L')) {
+                        e.preventDefault();
+                        if (typeof clearAllFilters === 'function') clearAllFilters();
+                        return;
+                    }
+
+                    if (e.key === 'Escape') {
+                        const panel = document.querySelector('.super-filter-panel');
+                        if (panel) panel.remove();
+                        // Close Modals (except Live Scan which has specific close)
+                        const modals = ['preValidationModal', 'duplicateDetailsModal', 'colVisModal', 'updatesModal', 'aboutModal', 'layoutModal'];
+                        modals.forEach(id => document.getElementById(id).classList.add('hidden'));
+
+                        if (typeof liveScanActive !== 'undefined' && liveScanActive) closeLiveScanMode();
+                        return;
+                    }
+
+                    if (!liveScanActive) return;
+
+                    if (e.key === 'p' || e.key === 'P') {
+                        toggleLivePause();
+                    }
+                });
+            }
+        });
     </script>
 
     <div id="layoutModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
@@ -2942,6 +4173,114 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Live Scan Mode Overlay -->
+    <div id="liveScanModal" class="hidden fixed inset-0 bg-gray-900 z-50 flex flex-col">
+        <!-- Header -->
+        <div class="bg-red-600 text-white p-4 flex justify-between items-center shadow-lg">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-circle animate-pulse text-2xl"></i>
+                <h2 class="text-2xl font-bold">LIVE SCAN MODE - ACTIVE</h2>
+            </div>
+
+            <!-- Condition Toggle -->
+            <div class="flex bg-black bg-opacity-30 rounded p-1">
+                <button id="btnCondGood" onclick="setLiveCondition('Good')"
+                    class="px-6 py-2 rounded font-bold bg-green-500 text-white shadow ring-2 ring-white">
+                    <i class="fas fa-check-circle mr-2"></i> GOOD
+                </button>
+                <button id="btnCondDamage" onclick="setLiveCondition('Damage')"
+                    class="px-6 py-2 rounded font-bold bg-transparent text-gray-300 hover:text-white transition">
+                    <i class="fas fa-times-circle mr-2"></i> DAMAGE
+                </button>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <button id="livePauseBtn" onclick="toggleLivePause()"
+                    class="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded font-bold">
+                    <i class="fas fa-pause mr-2"></i> PAUSE
+                </button>
+                <button onclick="closeLiveScanMode()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded font-bold">
+                    <i class="fas fa-times mr-2"></i> EXIT
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col p-6 overflow-hidden">
+            <!-- Input Box -->
+            <div class="mb-6">
+                <label class="text-white text-lg font-bold mb-2 block">SCAN BARCODE:</label>
+                <input type="text" id="liveScanInput"
+                    class="w-full p-4 text-2xl font-mono border-4 border-blue-500 rounded focus:outline-none focus:border-green-500"
+                    placeholder="Focus here and scan..." autocomplete="off">
+            </div>
+
+            <!-- Status Card -->
+            <div id="liveStatusCard" class="mb-6 p-8 rounded-lg border-4 text-center hidden">
+                <div id="liveStatusIcon" class="text-8xl mb-4"></div>
+                <div id="liveStatusText" class="text-4xl font-bold mb-2"></div>
+                <div id="liveStatusDetail" class="text-2xl"></div>
+            </div>
+
+            <!-- Statistics Panel -->
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="bg-green-700 p-4 rounded text-center">
+                    <div class="text-white text-sm font-bold mb-1">MATCHED</div>
+                    <div id="liveStatMatched" class="text-white text-4xl font-bold">0</div>
+                </div>
+                <div class="bg-red-700 p-4 rounded text-center">
+                    <div class="text-white text-sm font-bold mb-1">VARIANCE</div>
+                    <div id="liveStatVariance" class="text-white text-4xl font-bold">0</div>
+                </div>
+                <div class="bg-yellow-600 p-4 rounded text-center">
+                    <div class="text-white text-sm font-bold mb-1">DUPLICATES</div>
+                    <div id="liveStatDuplicate" class="text-white text-4xl font-bold">0</div>
+                </div>
+                <div class="bg-blue-700 p-4 rounded text-center">
+                    <div class="text-white text-sm font-bold mb-1">TOTAL SCANS</div>
+                    <div id="liveStatTotal" class="text-white text-4xl font-bold">0</div>
+                </div>
+            </div>
+
+            <!-- Recent Scans Table -->
+            <div class="flex-1 bg-gray-800 rounded overflow-hidden flex flex-col">
+                <div class="bg-gray-700 p-3 text-white font-bold text-sm">RECENT SCANS (Last 10)</div>
+                <div class="flex-1 overflow-y-auto">
+                    <table class="w-full text-white text-sm">
+                        <thead class="bg-gray-700 sticky top-0">
+                            <tr>
+                                <th class="p-2 text-left">#</th>
+                                <th class="p-2 text-left">Time</th>
+                                <th class="p-2 text-left">Material</th>
+                                <th class="p-2 text-left">Batch</th>
+                                <th class="p-2 text-left">Serial</th>
+                                <th class="p-2 text-left">Status</th>
+                                <th class="p-2 text-left">Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody id="liveScansTableBody">
+                            <tr>
+                                <td colspan="7" class="p-4 text-center text-gray-500">No scans yet...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Controls -->
+        <div class="bg-gray-800 p-4 flex justify-between items-center border-t border-gray-700">
+            <div class="text-white text-sm">
+                <kbd class="bg-gray-700 px-2 py-1 rounded">ESC</kbd> Exit |
+                <kbd class="bg-gray-700 px-2 py-1 rounded">P</kbd> Pause/Resume
+            </div>
+            <button onclick="finishLiveSession()"
+                class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded font-bold text-lg">
+                <i class="fas fa-check-circle mr-2"></i> FINISH & EXPORT
+            </button>
         </div>
     </div>
 </body>
