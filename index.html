@@ -2526,17 +2526,21 @@
                 updateProgress(40, 'Processing scanned items...');
                 const totalScans = rawScan.length - startRow;
 
+                // --- MULTI-PASS LOGIC (V13 Fix) ---
+                // We must buffer all scans first, then run matching in priority order:
+                // 1. MBS (Exact) -> 2. MB (Batch) -> 3. Mat (Material)
+
+                let parsedScans = [];
+
+                // PASS 0: PARSING & STATS
                 for (let i = startRow; i < rawScan.length; i++) {
                     const raw = rawScan[i][scanCol];
                     if (!raw) continue;
 
                     const actualRowNum = i + 1;
-
-                    // Parse with Pro Parser (GS1-128 / Multi-AI)
                     const p = parseProBarcode(raw, actualRowNum);
 
-                    // --- [UPDATED LOGIC]: Read Scan Quantity ---
-                    // Priority: 1. Barcode Qty (AI 37), 2. Qty Column, 3. Default 1
+                    // Read Scan Quantity
                     let currentScanQty = 1;
                     if (p.qty) {
                         currentScanQty = p.qty;
@@ -2545,24 +2549,13 @@
                         if (!isNaN(val) && val > 0) currentScanQty = val;
                     }
                     stats.tot += currentScanQty;
-                    // ------------------------------------------------------------
 
-                    // Update progress every 100 rows
-                    if (i % 100 === 0) {
-                        const progress = 40 + (i / totalScans) * 40; // 40-80% range
-                        updateProgress(progress, `Processing scan ${i} of ${totalScans}...`);
-                    }
-
-                    // Parse condition from Column B
+                    // Parse other fields
                     const condition = conditionCol >= 0 ? clean(rawScan[i][conditionCol]) : '';
-
-                    // Parse expiry date from barcode
                     const expiryDate = p.expiryDate || parseGS1Expiry(raw);
-
-                    // Classify stock status
                     const stockStatus = classifyMaterialStatus(condition, expiryDate, expirySettings);
 
-                    // Update stock status counters
+                    // Update Stock Stats
                     switch (stockStatus.status) {
                         case 'DAMAGE': stockStats.damage++; break;
                         case 'EXPIRED': stockStats.expired++; break;
@@ -2572,215 +2565,197 @@
                         case 'NO EXPIRY': stockStats.noExpiry++; break;
                     }
 
-                    // Skip invalid barcodes but continue processing
-                    if (!p.isValid || !p.mat) {
+                    // Scan Metadata
+                    const scanDesc = scanDescCol > -1 ? clean(rawScan[i][scanDescCol]) : "";
+                    const scanCust = scanCustCol > -1 ? clean(rawScan[i][scanCustCol]) : "";
+                    const scanCustCode = scanCustCodeCol > -1 ? clean(rawScan[i][scanCustCodeCol]) : "";
+
+                    parsedScans.push({
+                        idx: i,
+                        p,
+                        qty: currentScanQty,
+                        condition,
+                        expiryDate,
+                        stockStatus,
+                        raw,
+                        scanDesc,
+                        scanCust,
+                        scanCustCode,
+                        matched: false,
+                        matchType: null, // "Exact", "Batch Match", "Material Only", "Concat"
+                        matchRef: null
+                    });
+                }
+
+                // MATCHING HELPERS
+                const priorityList = (document.getElementById('plantPriority')?.value || "").split(',').map(p => p.trim().toUpperCase()).filter(Boolean);
+                const getBestMatch = (candidates) => {
+                    if (!candidates || candidates.length === 0) return null;
+                    // Only consider available inventory
+                    let available = candidates.filter(inv => inv.qty - inv.used > 0);
+                    if (available.length === 0) return null;
+
+                    if (priorityList.length > 0) {
+                        available.sort((a, b) => {
+                            let pA = priorityList.indexOf(String(a.plant).toUpperCase());
+                            let pB = priorityList.indexOf(String(b.plant).toUpperCase());
+                            if (pA === -1) pA = 999;
+                            if (pB === -1) pB = 999;
+                            return pA - pB;
+                        });
+                    }
+                    return available[0];
+                };
+
+                const consume = (scan, match, type) => {
+                    let consumeAmount = Math.min(scan.qty, match.qty - match.used);
+                    match.used += consumeAmount;
+                    scan.matched = true;
+                    scan.matchRef = match;
+                    scan.matchType = type;
+                    scan.consumed = consumeAmount;
+
+                    if (type === 'Exact' || type === 'Concat') stats.s += consumeAmount;
+                    else if (type === 'Batch Match') stats.b += consumeAmount;
+                    else if (type === 'Material Only') stats.m += consumeAmount;
+                };
+
+                // PASS 1: EXACT MATCH (MBS)
+                parsedScans.forEach(scan => {
+                    if (!scan.p.isValid || !scan.p.mat) return;
+
+                    // Try Exact
+                    const exactKey = `${scan.p.mat}|${scan.p.batch}|${scan.p.ser}`;
+                    let candidates = inventoryMap.get(exactKey);
+                    let match = getBestMatch(candidates);
+
+                    // Try Concat
+                    if (!match && enableConcat) {
+                        const longSerial = (scan.p.batch + concatDelimiter + scan.p.ser);
+                        if (longSerial) {
+                            const concatKey = `${scan.p.mat}|${scan.p.batch}|${longSerial}`;
+                            candidates = inventoryMap.get(concatKey);
+                            if (candidates) match = getBestMatch(candidates);
+                            if (match) { consume(scan, match, "Concat"); return; }
+                        }
+                    }
+
+                    if (match) { consume(scan, match, "Exact"); }
+                });
+
+                // PASS 2: BATCH MATCH (MB)
+                parsedScans.forEach(scan => {
+                    if (scan.matched || !scan.p.isValid || !scan.p.mat) return;
+
+                    const batchKey = `${scan.p.mat}|${scan.p.batch}|`;
+                    let candidates = inventoryMap.get(batchKey);
+                    let match = getBestMatch(candidates);
+
+                    if (match) { consume(scan, match, "Batch Match"); }
+                });
+
+                // PASS 3: MATERIAL MATCH (M)
+                parsedScans.forEach(scan => {
+                    if (scan.matched || !scan.p.isValid || !scan.p.mat) return;
+
+                    const matKey = `${scan.p.mat}||`;
+                    let candidates = inventoryMap.get(matKey);
+                    let match = getBestMatch(candidates);
+
+                    if (match) { consume(scan, match, "Material Only"); }
+                });
+
+                // FINAL PASS: BUILD GLOBAL DATA
+                parsedScans.forEach(scan => {
+                    if (!scan.p.isValid || !scan.p.mat) {
                         globalData.push({
                             status: 'Error',
                             css: 'bg-red-200 text-red-900',
                             statusPriority: -1,
                             logic: 'Parse Error',
-                            detail: p.error || 'Invalid barcode format',
-                            mat: p.mat || '???',
-                            phyBatch: p.batch,
-                            phySer: p.ser,
-                            sysBatch: '-',
-                            sysSer: '-',
-                            isDefaultSer: p.isDefaultSer,
-                            condition: condition,
-                            expiryDate: expiryDate,
-                            stockStatus: stockStatus,
-                            raw: raw
+                            detail: scan.p.error || 'Invalid barcode',
+                            mat: scan.p.mat || '???',
+                            phyBatch: scan.p.batch, phySer: scan.p.ser,
+                            sysBatch: '-', sysSer: '-',
+                            isDefaultSer: scan.p.isDefaultSer,
+                            condition: scan.condition,
+                            expiryDate: scan.expiryDate,
+                            stockStatus: scan.stockStatus,
+                            raw: scan.raw
                         });
                         stats.v++;
-                        continue;
+                        return;
                     }
-
-                    // Build concatenated serial with delimiter
-                    const longSerial = enableConcat ? (p.batch + concatDelimiter + p.ser) : '';
 
                     let status = "Variance";
                     let css = "bg-red-100 text-red-800";
                     let statusPriority = 0;
                     let logic = "-";
-                    let sysBatchFound = "-";
-                    let sysSerFound = "-";
-                    let sysPlantFound = "-";
-                    let sysExpiryFound = "-";
-                    let sysSlocFound = "-";
                     let detail = msgVar;
 
-                    // Map-based matching with O(1) lookup
-                    let match = null;
+                    const match = scan.matchRef;
 
-                    // Helper: Get Best Match by Plant Priority
-                    const priorityList = (document.getElementById('plantPriority')?.value || "").split(',').map(p => p.trim().toUpperCase()).filter(Boolean);
+                    if (scan.matched) {
+                        const consumed = scan.consumed;
+                        const diff = scan.qty - consumed;
 
-                    const getBestMatch = (candidates) => {
-                        if (!candidates || candidates.length === 0) return null;
-
-                        // --- [UPDATED LOGIC]: Check available quantity (qty - used > 0) ---
-                        let available = candidates.filter(inv => inv.qty - inv.used > 0);
-                        if (available.length === 0) return null;
-
-                        if (priorityList.length > 0) {
-                            available.sort((a, b) => {
-                                let pA = priorityList.indexOf(String(a.plant).toUpperCase());
-                                let pB = priorityList.indexOf(String(b.plant).toUpperCase());
-                                if (pA === -1) pA = 999;
-                                if (pB === -1) pB = 999;
-                                return pA - pB;
-                            });
-                        }
-                        return available[0];
-                    };
-
-                    // Try exact serial match first
-                    const exactKey = `${p.mat}|${p.batch}|${p.ser}`;
-                    let candidates = inventoryMap.get(exactKey);
-                    match = getBestMatch(candidates);
-
-                    // Try concatenated serial if enabled
-                    if (!match && enableConcat && longSerial) {
-                        const concatKey = `${p.mat}|${p.batch}|${longSerial}`;
-                        candidates = inventoryMap.get(concatKey);
-                        if (candidates) {
-                            match = getBestMatch(candidates);
-                            if (match) logic = "Concat";
-                        }
-                    }
-
-                    if (match) {
-                        // --- [UPDATED LOGIC]: Consume Quantity ---
-                        let consumeAmount = Math.min(currentScanQty, match.qty - match.used);
-                        match.used += consumeAmount;
-
-                        stats.s += consumeAmount; // Add matched quantity
-
-                        // Check for Partial/Variance (Over-consumption)
-                        if (consumeAmount < currentScanQty) {
-                            let diff = currentScanQty - consumeAmount;
+                        if (diff > 0) {
                             stats.v += diff;
                             status = "Variance (Partial)";
                             css = "bg-red-50 text-red-900 border-l-4 border-red-500";
-                            detail += ` | Stock Exhausted. Matched: ${consumeAmount}, Variance: ${diff}`;
-                            statusPriority = 4; // High priority to show error
+                            detail += ` | Stock Exhausted. Matched: ${consumed}, Variance: ${diff}`;
+                            statusPriority = 4;
                         } else {
-                            status = "Matched"; css = "bg-green-100 text-green-800";
-                            statusPriority = 3;
+                            if (scan.matchType === 'Exact' || scan.matchType === 'Concat') {
+                                status = "Matched"; css = "bg-green-100 text-green-800"; statusPriority = 3;
+                            } else if (scan.matchType === 'Batch Match') {
+                                status = "Partial"; css = "bg-yellow-100 text-yellow-800"; detail = msgBatch; statusPriority = 2;
+                            } else {
+                                status = "Warning"; css = "bg-orange-100 text-orange-800"; detail = msgMat; statusPriority = 1;
+                            }
                         }
-
-                        if (logic !== "Concat") logic = "Exact";
-                        sysBatchFound = match.batch; sysSerFound = match.ser; sysPlantFound = match.plant || "-"; sysExpiryFound = match.expiry || "-"; sysSlocFound = match.sloc || "-";
+                        logic = scan.matchType;
                     } else {
-                        // Fallback to batch match
-                        const batchKey = `${p.mat}|${p.batch}|`;
-                        candidates = inventoryMap.get(batchKey);
-                        match = getBestMatch(candidates);
-
-                        if (match) {
-                            // --- [UPDATED LOGIC]: Consume Quantity ---
-                            let consumeAmount = Math.min(currentScanQty, match.qty - match.used);
-                            match.used += consumeAmount;
-
-                            stats.b += consumeAmount;
-
-                            if (consumeAmount < currentScanQty) {
-                                let diff = currentScanQty - consumeAmount;
-                                stats.v += diff;
-                                status = "Variance (Partial)";
-                                css = "bg-red-50 text-red-900 border-l-4 border-red-500";
-                                detail = msgBatch + ` | Stock Exhausted. Matched: ${consumeAmount}, Variance: ${diff}`;
-                                statusPriority = 4;
-                            } else {
-                                status = "Partial"; css = "bg-yellow-100 text-yellow-800";
-                                detail = msgBatch;
-                                statusPriority = 2;
-                            }
-
-                            logic = "Batch Match"; sysBatchFound = match.batch; sysSerFound = match.ser; sysPlantFound = match.plant || "-"; sysExpiryFound = match.expiry || "-"; sysSlocFound = match.sloc || "-";
-                        } else {
-                            // Fallback to material-only match
-                            const matKey = `${p.mat}||`;
-                            candidates = inventoryMap.get(matKey);
-                            match = getBestMatch(candidates);
-
-                            if (match) {
-                                // --- [UPDATED LOGIC]: Consume Quantity ---
-                                let consumeAmount = Math.min(currentScanQty, match.qty - match.used);
-                                match.used += consumeAmount;
-
-                                stats.m += consumeAmount;
-
-                                if (consumeAmount < currentScanQty) {
-                                    let diff = currentScanQty - consumeAmount;
-                                    stats.v += diff;
-                                    status = "Variance (Partial)";
-                                    css = "bg-red-50 text-red-900 border-l-4 border-red-500";
-                                    detail = msgMat + ` | Stock Exhausted. Matched: ${consumeAmount}, Variance: ${diff}`;
-                                    statusPriority = 4;
-                                } else {
-                                    status = "Warning"; css = "bg-orange-100 text-orange-800";
-                                    detail = msgMat;
-                                    statusPriority = 1;
-                                }
-
-                                logic = "Material Only"; sysBatchFound = match.batch; sysSerFound = match.ser; sysPlantFound = match.plant || "-"; sysExpiryFound = match.expiry || "-"; sysSlocFound = match.sloc || "-";
-                            } else {
-                                stats.v += currentScanQty;
-                            }
-                        }
+                        stats.v += scan.qty;
                     }
 
-                    // Lookup Description & Customer (Priority: System -> Scan -> Master -> Empty)
-                    const scanDesc = scanDescCol > -1 ? clean(rawScan[i][scanDescCol]) : "";
-                    const scanCust = scanCustCol > -1 ? clean(rawScan[i][scanCustCol]) : "";
-                    const scanCustCode = scanCustCodeCol > -1 ? clean(rawScan[i][scanCustCodeCol]) : "";
-
-                    // Priority 1: System (match.desc/custName), Priority 2: Scan, Priority 3: Master (for desc)
-                    let finalDesc = match ? (match.desc || scanDesc || MATERIAL_MASTER[p.mat] || "") : (scanDesc || MATERIAL_MASTER[p.mat] || "");
-
-                    // Priority: Scan Code (as requested) -> Match Code -> Empty
-                    let finalCustCode = scanCustCode || (match ? match.custCode : "") || "";
-                    // Customer Name Lookup: Match -> Scan -> Master (using Code)
-                    // Customer Name Lookup: Match -> Scan -> Master (using Code)
-                    // Fuzzy lookup: Try exact, then try parsing as number to handle '00123' vs '123'
+                    // Metadata Lookup
+                    let finalDesc = match ? (match.desc || scan.scanDesc || MATERIAL_MASTER[scan.p.mat] || "") : (scan.scanDesc || MATERIAL_MASTER[scan.p.mat] || "");
+                    let finalCustCode = scan.scanCustCode || (match ? match.custCode : "") || "";
                     let masterCustName = CUSTOMER_MASTER[finalCustCode];
                     if (!masterCustName && !isNaN(parseFloat(finalCustCode))) {
                         masterCustName = CUSTOMER_MASTER[String(parseFloat(finalCustCode))];
                     }
                     masterCustName = masterCustName || "";
+                    let finalCust = match ? (match.custName || scan.scanCust || masterCustName || "") : (scan.scanCust || masterCustName || "");
 
-                    let finalCust = match ? (match.custName || scanCust || masterCustName || "") : (scanCust || masterCustName || "");
-
-                    // S.Loc Logic (V13): Configurable S.Locs
+                    // S.Loc
                     const enableAutoSloc = document.getElementById('autoSloc')?.checked ?? true;
-                    let finalSloc = "";
-
-                    if (enableAutoSloc) {
-                        finalSloc = (stockStatus.status === 'GOOD STOCK') ? goodSlocCode : dmgSlocCode;
-                    } else {
-                        finalSloc = sysSlocFound || "";
-                    }
+                    let finalSloc = enableAutoSloc ? ((scan.stockStatus.status === 'GOOD STOCK') ? goodSlocCode : dmgSlocCode) : (match ? (match.sloc || "-") : "");
 
                     globalData.push({
                         status, css, statusPriority, logic, detail,
-                        mat: p.mat,
+                        mat: scan.p.mat,
                         desc: finalDesc,
-                        cust: finalCust, // Full Customer Name
+                        cust: finalCust,
                         custCode: finalCustCode,
-                        phyBatch: p.batch, phySer: p.ser,
-                        sysBatch: sysBatchFound, sysSer: sysSerFound, sysPlant: sysPlantFound,
-                        sysExpiry: sysExpiryFound,
+                        phyBatch: scan.p.batch, phySer: scan.p.ser,
+                        sysBatch: match ? match.batch : '-',
+                        sysSer: match ? match.ser : '-',
+                        sysPlant: match ? (match.plant || '-') : '-',
+                        sysExpiry: match ? (match.expiry || '-') : '-',
                         sysAge: match ? (match.age || "-") : "-",
-                        sysSloc: sysSlocFound,
-                        sLoc: finalSloc, // New Column
-                        isDefaultSer: p.isDefaultSer,
-                        condition: condition,
-                        expiryDate: expiryDate,
-                        stockStatus: stockStatus,
-                        raw: raw
+                        sysSloc: match ? (match.sloc || '-') : '-',
+                        billDoc: match ? (match.billDoc || '-') : '-',
+                        billDate: match ? (match.billDate || '-') : '-',
+                        sLoc: finalSloc,
+                        isDefaultSer: scan.p.isDefaultSer,
+                        condition: scan.condition,
+                        expiryDate: scan.expiryDate,
+                        stockStatus: scan.stockStatus,
+                        raw: scan.raw
                     });
-                }
+                });
 
                 // CALC REMAINING with progress tracking
                 updateProgress(85, 'Calculating remaining inventory...');
