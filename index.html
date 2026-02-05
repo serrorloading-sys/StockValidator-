@@ -2721,6 +2721,7 @@
                         } else {
                             if (scan.matchType === 'Exact' || scan.matchType === 'Concat') {
                                 status = "Matched"; css = "bg-green-100 text-green-800"; statusPriority = 3;
+                                detail = msgMatch;
                             } else if (scan.matchType === 'Batch Match') {
                                 status = "Partial"; css = "bg-yellow-100 text-yellow-800"; detail = msgBatch; statusPriority = 2;
                             } else {
